@@ -47,7 +47,7 @@ async def process_help_command(message: Message):
 # видео заметки
 @dp.message(F.video_note)
 async def process_sent_voice(message: Message):
-    if message.video_note.duration > 5:
+    if message.video_note.duration > 59:
         # print(message.model_dump_json(indent=4, exclude_none=True))
         await message.reply(text=choice(comments))
     else:
