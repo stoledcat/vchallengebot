@@ -50,6 +50,8 @@ async def process_sent_voice(message: Message):
     if message.video_note.duration > 5:
         # print(message.model_dump_json(indent=4, exclude_none=True))
         await message.reply(text=choice(comments))
+    else:
+        await message.reply(text="Кружок должен быть длительностью 59 секунд 🙃")
 
 
 
