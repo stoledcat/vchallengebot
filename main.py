@@ -1,59 +1,32 @@
-import os
-from random import choice
+import asyncio
+import logging
 
-from aiogram import Bot, Dispatcher, F, types
-from aiogram.filters import Command
-from aiogram.methods import SendMessage
-from aiogram.types import Message
-from dotenv import load_dotenv
+from aiogram import Bot, Dispatcher
 
-from comments import comments
-
-load_dotenv()
-
-# API_URL = "https://api.telegram.org/bot"
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-
-bot = Bot(token=BOT_TOKEN)
-dp = Dispatcher()
+from config.config import Config, load_config
+from handlers import other, user
 
 
-# Этот хэндлер будет срабатывать на команду "/start"
-@dp.message(Command(commands="start"))
-async def process_start_command(message: Message):
-    # print(message.model_dump_json(indent=4, exclude_none=True))
-    await message.reply(
-        "Готово 👍\n"
-        "Теперь не забывай ежедневно присылать свои кружочки.\n"
-        "Иначе будешь пополнять фонд."
+async def main() -> None:
+    # загрузить конфиг в переменную конфиг
+    config: Config = load_config()
+
+    # задать базовую конфигурацию логирования
+    logging.basicConfig(
+        level=logging.getLevelName(level=config.log.level), format=config.log.format
     )
 
-# выписаться из челленджа /check_out
-@dp.message(Command(commands="check_out"))
-async def process_check_out_command(message: Message):
-    # print(message.model_dump_json(indent=4, exclude_none=True))
-    await message.reply("Ты успешно выписан из испытания 👋")
+    # инициализировать бота и дспетчера
+    bot = Bot(token=config.bot.token)
+    dp = Dispatcher()
 
+    dp.include_router(user.router)
+    dp.include_router(other.router)
 
-# Этот хэндлер будет срабатывать на команду "/help"
-@dp.message(Command(commands="help"))
-async def process_help_command(message: Message):
-    # print(message.model_dump_json(indent=4, exclude_none=True))
-    await message.reply("Что делать?\n"
-    "Стоять в планке одну минуту, это как раз длительность кружочка.\n"
-    "Если сегодня от тебя кружок не увидели, готовь донатик в фонд 💰")
-
-
-# видео заметки
-@dp.message(F.video_note)
-async def process_sent_voice(message: Message):
-    if message.video_note.duration > 59:
-        # print(message.model_dump_json(indent=4, exclude_none=True))
-        await message.reply(text=choice(comments))
-    else:
-        await message.reply(text="Кружок должен быть длительностью 59 секунд 🙃")
-
+    # пропустить накопившиеся апдейты
+    await bot.delete_webhook(drop_pending_updates=True)
+    await dp.start_polling(bot)
 
 
 if __name__ == "__main__":
-    dp.run_polling(bot)
+    asyncio.run(main())
