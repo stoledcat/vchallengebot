@@ -6,7 +6,7 @@ from aiogram import Router
 from aiogram.filters import Command, CommandStart
 from aiogram.types import Message
 
-from lexicon.lexicon import LEXICON, start
+from lexicon.lexicon import LEXICON, start, already_started
 
 # инициализировать роутер уровня модуля
 router = Router()
@@ -47,7 +47,7 @@ async def process_start_command(message: Message):
             await db.commit()
         await message.reply(text=choice(start))
     except aiosqlite.IntegrityError:
-        await message.reply(text="Ты уже участвуешь в челлендже.")
+        await message.reply(text=choice(already_started))
 
 
 # Этот хэндлер будет срабатывать на команду "/help"
