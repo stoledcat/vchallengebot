@@ -1,6 +1,7 @@
 import asyncio
 import logging
 
+import aiosqlite
 from aiogram import Bot, Dispatcher
 
 from config.config import Config, load_config
@@ -11,10 +12,41 @@ async def main() -> None:
     # загрузить конфиг в переменную конфиг
     config: Config = load_config()
 
-    # задать базовую конфигурацию логирования
+    # Задать базовую конфигурацию логирования
     logging.basicConfig(
         level=logging.getLevelName(level=config.log.level), format=config.log.format
     )
+
+    # Создать базу данных
+    async with aiosqlite.connect("app/vplanke.db") as db:
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS users (
+                user_id INTEGER PRIMARY KEY,
+                username TEXT,
+                first_name TEXT,
+                last_name TEXT,
+                joined_at TEXT,
+                left_at TEXT,
+                chat_id INTEGER,
+                is_member INTEGER
+            )
+            """
+        )
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS events (
+                event_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                chat_id INTEGER,
+                is_complete INTEGER,
+                event_date TEXT,
+                penalty INTEGER,
+                FOREIGN KEY(user_id) REFERENCES users(user_id)
+            )
+            """
+        )
+        await db.commit()
 
     # инициализировать бота и дспетчера
     bot = Bot(token=config.bot.token)
