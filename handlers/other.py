@@ -19,7 +19,7 @@ async def process_check_out_command(message: Message):
     try:
         date = datetime.now()
         iso_date = date.strftime("%Y-%m-%d %H:%M:%S")
-        async with aiosqlite.connect("app/vplanke.db") as db:
+        async with aiosqlite.connect(LEXICON["database"]) as db:
             user = message.from_user
             user_id = user.id
             async with db.execute(
@@ -48,11 +48,10 @@ async def process_check_out_command(message: Message):
         await message.reply(text=LEXICON["error"])
 
 
-# Проверка видео аметок (кружочков)
+# Проверка видео заметок (кружочков)
 @router.message(F.video_note)
 async def process_sent_voice(message: Message):
     if message.video_note.duration > 59:
-        # print(message.model_dump_json(indent=4, exclude_none=True))
         await message.reply(text=choice(approved))
     else:
         await message.reply(text=choice(not_approved))
@@ -84,7 +83,7 @@ async def on_user_left(event: ChatMemberUpdated):
     try:
         date = datetime.now()
         iso_date = date.strftime("%Y-%m-%d %H:%M:%S")
-        async with aiosqlite.connect("app/vplanke.db") as db:
+        async with aiosqlite.connect(LEXICON["database"]) as db:
             user_id = user.id
             async with db.execute(
                 "SELECT is_member FROM users WHERE user_id = ?", (user_id,)

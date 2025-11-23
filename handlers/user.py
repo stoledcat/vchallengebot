@@ -19,7 +19,7 @@ async def process_start_command(message: Message):
     date = datetime.now()
     iso_date = date.strftime("%Y-%m-%d %H:%M:%S")
     try:
-        async with aiosqlite.connect("app/vplanke.db") as db:
+        async with aiosqlite.connect(LEXICON["database"]) as db:
             user = message.from_user
             user_id = user.id
             # Проверить, есть ли пользователь в базе данных

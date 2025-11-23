@@ -6,7 +6,7 @@ from aiogram import Bot, Dispatcher
 
 from config.config import Config, load_config
 from handlers import other, user
-
+from lexicon.lexicon import LEXICON
 
 async def main() -> None:
     # загрузить конфиг в переменную конфиг
@@ -18,7 +18,7 @@ async def main() -> None:
     )
 
     # Создать базу данных
-    async with aiosqlite.connect("app/vplanke.db") as db:
+    async with aiosqlite.connect(LEXICON["database"]) as db:
         await db.execute(
             """
             CREATE TABLE IF NOT EXISTS users (
