@@ -71,10 +71,7 @@ async def process_start_command(message: Message):
     except aiosqlite.IntegrityError as e:
         # Логируем ошибку или информируем пользователя
         print(f"Integrity error: {e}")
-        await message.reply(
-            "Произошла ошибка при работе с базой данных.\n"
-            "@stoledcat уже спешит на помощь (наверное)."
-        )
+        await message.reply(text=LEXICON["error"])
 
 
 # Этот хэндлер будет срабатывать на команду "/help"
