@@ -72,3 +72,42 @@ async def on_user_joined(event: ChatMemberUpdated):
         "Нажми команду /start, чтобы записаться в челлендж.",
         parse_mode="HTML",
     )
+
+
+# Вышедшему пользователю установить is_member = 0
+@router.chat_member(ChatMemberUpdatedFilter(IS_MEMBER >> IS_NOT_MEMBER))
+async def on_user_left(event: ChatMemberUpdated):
+    user = event.old_chat_member.user
+    user_id = user.id
+    user_first_name = user.first_name
+
+    try:
+        date = datetime.now()
+        iso_date = date.strftime("%Y-%m-%d %H:%M:%S")
+        async with aiosqlite.connect("app/vplanke.db") as db:
+            user_id = user.id
+            async with db.execute(
+                "SELECT is_member FROM users WHERE user_id = ?", (user_id,)
+            ) as cursor:
+                row = await cursor.fetchone()
+                await db.execute(
+                    """
+                    UPDATE users
+                    SET left_at = ?, is_member = ?
+                    WHERE user_id = ?
+                    """,
+                    (iso_date, 0, user.id),
+                )
+
+                await db.commit()
+            await asyncio.sleep(1)
+            chat_id = event.chat.id
+            await event.bot.send_message(
+                chat_id=chat_id,
+                text=f"Пользователь, <a href='tg://user?id={user_id}'>{user_first_name}</a> больше не принимает участие в челлендже.",
+                parse_mode="HTML",
+            )
+
+    except aiosqlite.IntegrityError:
+        chat_id = event.chat.id
+        await event.bot.send_message(chat_id=chat_id, text=LEXICON["error"])
