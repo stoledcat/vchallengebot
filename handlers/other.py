@@ -1,10 +1,11 @@
 import asyncio
-from random import choice
-import aiosqlite
 from datetime import datetime
+from random import choice
 
+import aiosqlite
 from aiogram import F, Router
-from aiogram.filters import IS_MEMBER, IS_NOT_MEMBER, ChatMemberUpdatedFilter, Command
+from aiogram.filters import (IS_MEMBER, IS_NOT_MEMBER, ChatMemberUpdatedFilter,
+                             Command)
 from aiogram.types import ChatMemberUpdated, Message
 
 from lexicon.lexicon import LEXICON, approved, not_approved
@@ -52,8 +53,11 @@ async def process_check_out_command(message: Message):
 @router.message(F.video_note)
 async def process_sent_voice(message: Message):
     # user_id = user.id
-    user_id = message.from_user.id
     chat_id = message.chat.id
+    user_id = message.from_user.id
+    username = message.from_user.username
+    user_first_name = message.from_user.first_name
+    user_last_name = message.from_user.last_name
     date = datetime.now()
     iso_date = date.strftime("%Y-%m-%d %H:%M:%S")
 
@@ -73,13 +77,16 @@ async def process_sent_voice(message: Message):
                         await db.execute(
                             """
                             INSERT INTO events (
-                                user_id,
                                 chat_id,
+                                user_id,
+                                username,
+                                user_first_name,
+                                user_last_name,
                                 is_complete,
                                 created_at
-                                ) VALUES (?, ?, ?, ?)
+                                ) VALUES (?, ?, ?, ?, ?, ?, ?)
                             """,
-                            (user_id, chat_id, 1, iso_date),
+                            (chat_id, user_id, username, user_first_name, user_last_name, 1, iso_date),
                         )
                         await db.commit()
                         await message.reply(text=choice(approved))

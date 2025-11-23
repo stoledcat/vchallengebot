@@ -6,7 +6,7 @@ from aiogram import Router
 from aiogram.filters import Command, CommandStart
 from aiogram.types import Message
 
-from lexicon.lexicon import LEXICON, start, already_started
+from lexicon.lexicon import LEXICON, already_started, start
 
 # инициализировать роутер уровня модуля
 router = Router()

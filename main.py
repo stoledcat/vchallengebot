@@ -8,6 +8,7 @@ from config.config import Config, load_config
 from handlers import other, user
 from lexicon.lexicon import LEXICON
 
+
 async def main() -> None:
     # загрузить конфиг в переменную конфиг
     config: Config = load_config()
@@ -37,8 +38,11 @@ async def main() -> None:
             """
             CREATE TABLE IF NOT EXISTS events (
                 event_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER,
                 chat_id INTEGER,
+                user_id INTEGER,
+                username TEXT,
+                user_first_name TEXT,
+                user_last_name TEXT,
                 is_complete INTEGER,
                 created_at TEXT,
                 penalty INTEGER,
