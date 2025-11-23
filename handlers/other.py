@@ -1,9 +1,10 @@
 import asyncio
 from random import choice
+import aiosqlite
+from datetime import datetime
 
 from aiogram import F, Router
-from aiogram.filters import (IS_MEMBER, IS_NOT_MEMBER, ChatMemberUpdatedFilter,
-                             Command)
+from aiogram.filters import IS_MEMBER, IS_NOT_MEMBER, ChatMemberUpdatedFilter, Command
 from aiogram.types import ChatMemberUpdated, Message
 
 from lexicon.lexicon import LEXICON, approved, not_approved
@@ -15,7 +16,36 @@ router = Router()
 # Выписаться из челленджа /sign_out
 @router.message(Command(commands="sign_out"))
 async def process_check_out_command(message: Message):
-    await message.reply(text=LEXICON["sign_out"])
+    try:
+        date = datetime.now()
+        iso_date = date.strftime("%Y-%m-%d %H:%M:%S")
+        async with aiosqlite.connect("app/vplanke.db") as db:
+            user = message.from_user
+            user_id = user.id
+            async with db.execute(
+                "SELECT is_member FROM users WHERE user_id = ?", (user_id,)
+            ) as cursor:
+                row = await cursor.fetchone()
+            if not row:
+                await message.reply(text=LEXICON["not_in_base"])
+            elif row[0] == 0:
+                await message.reply(text=LEXICON["already_signed_out"])
+            else:
+                await db.execute(
+                    """
+                    UPDATE users
+                    SET left_at = ?, is_member = ?
+                    WHERE user_id = ?
+                    """,
+                    (iso_date, 0, user.id),
+                )
+
+                await db.commit()
+                await message.reply(text=LEXICON["sign_out"])
+    except aiosqlite.IntegrityError as e:
+        # Логировать ошибку или информировать пользователя
+        print(f"Integrity error: {e}")
+        await message.reply(text=LEXICON["error"])
 
 
 # Проверка видео аметок (кружочков)

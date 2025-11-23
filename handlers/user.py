@@ -69,7 +69,7 @@ async def process_start_command(message: Message):
             else:
                 await message.reply(text=choice(already_started))
     except aiosqlite.IntegrityError as e:
-        # Логируем ошибку или информируем пользователя
+        # Логировать ошибку или информировать пользователя
         print(f"Integrity error: {e}")
         await message.reply(text=LEXICON["error"])
 
