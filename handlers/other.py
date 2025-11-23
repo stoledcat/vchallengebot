@@ -51,10 +51,44 @@ async def process_check_out_command(message: Message):
 # Проверка видео заметок (кружочков)
 @router.message(F.video_note)
 async def process_sent_voice(message: Message):
-    if message.video_note.duration > 59:
-        await message.reply(text=choice(approved))
-    else:
-        await message.reply(text=choice(not_approved))
+    # user_id = user.id
+    user_id = message.from_user.id
+    chat_id = message.chat.id
+    date = datetime.now()
+    iso_date = date.strftime("%Y-%m-%d %H:%M:%S")
+
+    # Проверить, является ли пользователь участником челленджа
+    try:
+        async with aiosqlite.connect(LEXICON["database"]) as db:
+            async with db.execute(
+                "SELECT is_member FROM users WHERE user_id = ?", (user_id,)
+            ) as member_cursor:
+                is_member = await member_cursor.fetchone()
+                print("is_member", is_member)
+                if not is_member or is_member[0] == 0:
+                    await message.reply(text=LEXICON["not_a_member"])
+                else:
+                    # Проверить длительность видео заметки
+                    if message.video_note.duration > 5:
+                        await db.execute(
+                            """
+                            INSERT INTO events (
+                                user_id,
+                                chat_id,
+                                is_complete,
+                                created_at
+                                ) VALUES (?, ?, ?, ?)
+                            """,
+                            (user_id, chat_id, 1, iso_date),
+                        )
+                        await db.commit()
+                        await message.reply(text=choice(approved))
+                    else:
+                        await message.reply(text=choice(not_approved))
+    except aiosqlite.IntegrityError as e:
+        # Логировать ошибку или информировать пользователя
+        print(f"Integrity error: {e}")
+        await message.reply(text=LEXICON["error"])
 
 
 # Приветствие новых пользователей
@@ -63,7 +97,7 @@ async def on_user_joined(event: ChatMemberUpdated):
     user = event.new_chat_member.user
     user_id = user.id
     user_first_name = user.first_name
-    await asyncio.sleep(5)
+    await asyncio.sleep(3)
     chat_id = event.chat.id
     await event.bot.send_message(
         chat_id=chat_id,
@@ -73,7 +107,7 @@ async def on_user_joined(event: ChatMemberUpdated):
     )
 
 
-# Вышедшему пользователю установить is_member = 0
+# Ушедшему пользователю установить is_member = 0
 @router.chat_member(ChatMemberUpdatedFilter(IS_MEMBER >> IS_NOT_MEMBER))
 async def on_user_left(event: ChatMemberUpdated):
     user = event.old_chat_member.user

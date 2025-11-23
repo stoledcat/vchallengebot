@@ -40,7 +40,7 @@ async def main() -> None:
                 user_id INTEGER,
                 chat_id INTEGER,
                 is_complete INTEGER,
-                event_date TEXT,
+                created_at TEXT,
                 penalty INTEGER,
                 FOREIGN KEY(user_id) REFERENCES users(user_id)
             )
