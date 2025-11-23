@@ -16,7 +16,7 @@ router = Router()
 @router.message(CommandStart())
 async def process_start_command(message: Message):
     date = datetime.now()
-    formatted_datetime = date.strftime("%d.%m.%Y %H:%M:%S")
+    iso_format = date.strftime("%Y-%m-%d %H:%M:%S")
     try:
         async with aiosqlite.connect("app/vplanke.db") as db:
             user = message.from_user
@@ -38,7 +38,7 @@ async def process_start_command(message: Message):
                     user.username,
                     user.first_name,
                     user.last_name,
-                    formatted_datetime,
+                    iso_format,
                     None,
                     message.chat.id,
                     1,
