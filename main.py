@@ -39,6 +39,7 @@ async def main() -> None:
             CREATE TABLE IF NOT EXISTS events (
                 event_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 chat_id INTEGER,
+                chat_title TEXT,
                 user_id INTEGER,
                 username TEXT,
                 user_first_name TEXT,

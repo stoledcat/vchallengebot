@@ -54,6 +54,7 @@ async def process_check_out_command(message: Message):
 async def process_sent_voice(message: Message):
     # user_id = user.id
     chat_id = message.chat.id
+    chat_title = message.chat.title
     user_id = message.from_user.id
     username = message.from_user.username
     user_first_name = message.from_user.first_name
@@ -78,15 +79,16 @@ async def process_sent_voice(message: Message):
                             """
                             INSERT INTO events (
                                 chat_id,
+                                chat_title,
                                 user_id,
                                 username,
                                 user_first_name,
                                 user_last_name,
                                 is_complete,
                                 created_at
-                                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                             """,
-                            (chat_id, user_id, username, user_first_name, user_last_name, 1, iso_date),
+                            (chat_id, chat_title, user_id, username, user_first_name, user_last_name, 1, iso_date),
                         )
                         await db.commit()
                         await message.reply(text=choice(approved))
