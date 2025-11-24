@@ -5,12 +5,12 @@ import aiosqlite
 from aiogram import Bot, Dispatcher
 
 from config.config import Config, load_config
-from handlers import other, user
+from handlers import other, user, is_admin
 from lexicon.lexicon import LEXICON
 
 
 async def main() -> None:
-    # загрузить конфиг в переменную конфиг
+    # Загрузить конфиг в переменную конфиг
     config: Config = load_config()
 
     # Задать базовую конфигурацию логирования
@@ -57,11 +57,13 @@ async def main() -> None:
     bot = Bot(token=config.bot.token)
     dp = Dispatcher()
 
-    dp.include_router(user.router)
+    dp.include_router(is_admin.router)
     dp.include_router(other.router)
+    dp.include_router(user.router)
 
     # пропустить накопившиеся апдейты
-    await bot.delete_webhook(drop_pending_updates=True)
+    # await bot.delete_webhook(drop_pending_updates=True)
+
     await dp.start_polling(bot)
 
 

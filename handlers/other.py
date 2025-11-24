@@ -88,7 +88,16 @@ async def process_sent_voice(message: Message):
                                 created_at
                                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                             """,
-                            (chat_id, chat_title, user_id, username, user_first_name, user_last_name, 1, iso_date),
+                            (
+                                chat_id,
+                                chat_title,
+                                user_id,
+                                username,
+                                user_first_name,
+                                user_last_name,
+                                1,
+                                iso_date,
+                            ),
                         )
                         await db.commit()
                         await message.reply(text=choice(approved))
