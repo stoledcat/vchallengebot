@@ -1,1 +1,1 @@
-from handlers.is_admin import AdminFilter
+from app.filters.is_admin import AdminFilter

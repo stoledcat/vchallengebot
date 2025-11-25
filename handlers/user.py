@@ -38,9 +38,8 @@ async def process_start_command(message: Message):
                         last_name,
                         joined_at,
                         left_at,
-                        chat_id,
                         is_member
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         user.id,
@@ -49,7 +48,6 @@ async def process_start_command(message: Message):
                         user.last_name,
                         iso_date,
                         None,
-                        message.chat.id,
                         1,
                     ),
                 )

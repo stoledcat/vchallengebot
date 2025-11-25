@@ -84,9 +84,8 @@ async def process_sent_voice(message: Message):
                                 username,
                                 user_first_name,
                                 user_last_name,
-                                is_complete,
                                 created_at
-                                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                                ) VALUES (?, ?, ?, ?, ?, ?, ?)
                             """,
                             (
                                 chat_id,
@@ -95,11 +94,23 @@ async def process_sent_voice(message: Message):
                                 username,
                                 user_first_name,
                                 user_last_name,
-                                1,
                                 iso_date,
                             ),
                         )
                         await db.commit()
+                        await db.execute(
+                            """
+                            INSERT OR IGNORE INTO chats (chat_id, chat_title, created_at)
+                            VALUES (?, ?, ?)
+                            """,
+                            (
+                                chat_id,
+                                chat_title,
+                                iso_date,
+                            ),
+                        )
+                        await db.commit()
+
                         await message.reply(text=choice(approved))
                     else:
                         await message.reply(text=choice(not_approved))
