@@ -1,5 +1,6 @@
 from datetime import datetime
 from random import choice
+import asyncio
 
 import aiosqlite
 from aiogram import Router
@@ -8,9 +9,11 @@ from aiogram.types import Message
 
 from lexicon.lexicon import LEXICON, already_started, start
 
+from handlers.delete_message import delete_message_delayed as dm
+import handlers.delay as delay
+
 # инициализировать роутер уровня модуля
 router = Router()
-
 
 
 # Этот хэндлер будет срабатывать на команду "/start"
@@ -52,7 +55,7 @@ async def process_start_command(message: Message):
                     ),
                 )
                 await db.commit()
-                await message.reply(text=choice(start))
+                sent_message = await message.reply(text=choice(start))
             elif row[0] == 0:
                 await db.execute(
                     """
@@ -63,11 +66,15 @@ async def process_start_command(message: Message):
                     (iso_date, 1, user.id),
                 )
                 await db.commit()
-                await message.reply(text=choice(start))
+                sent_message = await message.reply(text=choice(start))
             else:
-                await message.reply(text=choice(already_started))
+                sent_message = await message.reply(text=choice(already_started))
+
+# удалить сообщение пользователя и ответ бота
+            await dm(sent_message, delay.DELAY_START_MESSAGE)
+            await message.delete()
     except aiosqlite.IntegrityError as e:
-        # Логировать ошибку или информировать пользователя
+# Логировать ошибку или информировать пользователя
         print(f"Integrity error: {e}")
         await message.reply(text=LEXICON["error"])
 
@@ -75,4 +82,6 @@ async def process_start_command(message: Message):
 # Этот хэндлер будет срабатывать на команду "/help"
 @router.message(Command(commands="help"))
 async def process_help_command(message: Message):
-    await message.reply(text=LEXICON["/help"])
+    sent_message = await message.reply(text=LEXICON["/help"])
+    await dm(sent_message, delay.DELAY_HELP_MESSAGE)
+    await message.delete()

@@ -4,10 +4,10 @@ import logging
 import aiosqlite
 from aiogram import Bot, Dispatcher
 
-from app import db_scheme
+from db import db_scheme
 from config.config import Config, load_config
 from filters import admin
-from handlers import other, user
+from handlers import other, user, admin
 from lexicon.lexicon import LEXICON
 
 

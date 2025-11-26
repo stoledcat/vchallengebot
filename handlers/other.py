@@ -1,14 +1,16 @@
 import asyncio
+
 from datetime import datetime
 from random import choice
 
 import aiosqlite
 from aiogram import F, Router
-from aiogram.filters import (IS_MEMBER, IS_NOT_MEMBER, ChatMemberUpdatedFilter,
-                             Command)
+from aiogram.filters import IS_MEMBER, IS_NOT_MEMBER, ChatMemberUpdatedFilter, Command
 from aiogram.types import ChatMemberUpdated, Message
 
 from lexicon.lexicon import LEXICON, approved, not_approved
+from handlers.delete_message import delete_message_delayed as dm
+import handlers.delay as delay
 
 # инициализировать роутер уровня модуля
 router = Router()
@@ -28,9 +30,9 @@ async def process_check_out_command(message: Message):
             ) as cursor:
                 row = await cursor.fetchone()
             if not row:
-                await message.reply(text=LEXICON["not_in_base"])
+                sent_message = await message.reply(text=LEXICON["not_in_base"])
             elif row[0] == 0:
-                await message.reply(text=LEXICON["already_signed_out"])
+                sent_message = await message.reply(text=LEXICON["already_signed_out"])
             else:
                 await db.execute(
                     """
@@ -42,11 +44,17 @@ async def process_check_out_command(message: Message):
                 )
 
                 await db.commit()
-                await message.reply(text=LEXICON["sign_out"])
+                sent_message = await message.reply(text=LEXICON["sign_out"])
+
+            # удалить сообщение пользователя и ответ бота
+            await dm(sent_message, delay.DELAY_NOTIFY)
+            await message.delete()
+
     except aiosqlite.IntegrityError as e:
         # Логировать ошибку или информировать пользователя
         print(f"Integrity error: {e}")
-        await message.reply(text=LEXICON["error"])
+        sent_message = await message.reply(text=LEXICON["error"])
+        await dm(sent_message, delay.DELAY_ERROR_MESSAGE)
 
 
 # Проверка видео заметок (кружочков)
@@ -69,11 +77,12 @@ async def process_sent_voice(message: Message):
                 "SELECT is_member FROM users WHERE user_id = ?", (user_id,)
             ) as member_cursor:
                 is_member = await member_cursor.fetchone()
-                print("is_member", is_member)
                 if not is_member or is_member[0] == 0:
-                    await message.reply(text=LEXICON["not_a_member"])
+                    sent_message = await message.reply(text=LEXICON["not_a_member"])
+
                 else:
                     # Проверить длительность видео заметки
+                    # TODO не забыть вернуть длительность кружочка 59 секунд
                     if message.video_note.duration > 5:
                         await db.execute(
                             """
@@ -111,9 +120,10 @@ async def process_sent_voice(message: Message):
                         )
                         await db.commit()
 
-                        await message.reply(text=choice(approved))
+                        sent_message = await message.reply(text=choice(approved))
                     else:
-                        await message.reply(text=choice(not_approved))
+                        sent_message = await message.reply(text=choice(not_approved))
+                await dm(sent_message, delay.DELAY_VIDEO_REPLY)
     except aiosqlite.IntegrityError as e:
         # Логировать ошибку или информировать пользователя
         print(f"Integrity error: {e}")
@@ -128,12 +138,13 @@ async def on_user_joined(event: ChatMemberUpdated):
     user_first_name = user.first_name
     await asyncio.sleep(3)
     chat_id = event.chat.id
-    await event.bot.send_message(
+    sent_message = await event.bot.send_message(
         chat_id=chat_id,
         text=f"Добро пожаловать, <a href='tg://user?id={user_id}'>{user_first_name}</a>!\n"
         "Нажми команду /start, чтобы записаться в челлендж.",
         parse_mode="HTML",
     )
+    await dm(sent_message, delay.DELAY_GREETING)
 
 
 # Ушедшему пользователю установить is_member = 0
