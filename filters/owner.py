@@ -5,7 +5,7 @@ router = Router()
 
 
 class OwnerFilter(BaseFilter):
-    """Класс проверки, является ли пользователь администратором, владельцем"""
+    """Класс проверки, является ли пользователь владельцем"""
 
     async def __call__(self, message: types.Message) -> bool:
         member = await message.chat.get_member(message.from_user.id)
