@@ -9,7 +9,7 @@ from aiogram.filters import (IS_MEMBER, IS_NOT_MEMBER, ChatMemberUpdatedFilter,
 from aiogram.types import ChatMemberUpdated, Message
 
 from config import config
-from config.config import DATABASE
+from config.config import DATABASE, VIDEO_NOTE_DURATION
 from handlers.delete_message import delete_message_delayed as dm
 from lexicon.lexicon import LEXICON, approved, not_approved
 
@@ -84,7 +84,7 @@ async def process_sent_voice(message: Message):
                 else:
                     # Проверить длительность видео заметки
                     # TODO не забыть вернуть длительность кружочка 59 секунд
-                    if message.video_note.duration > 5:
+                    if message.video_note.duration > VIDEO_NOTE_DURATION:
                         await db.execute(
                             """
                             INSERT INTO events (
@@ -95,7 +95,7 @@ async def process_sent_voice(message: Message):
                                 user_first_name,
                                 user_last_name,
                                 created_at
-                                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?)
                             """,
                             (
                                 chat_id,
@@ -107,20 +107,35 @@ async def process_sent_voice(message: Message):
                                 iso_date,
                             ),
                         )
-                        await db.commit()
+
                         await db.execute(
                             """
-                            INSERT OR IGNORE INTO chats (chat_id, chat_title, created_at)
-                            VALUES (?, ?, ?)
+                            INSERT INTO users (
+                                user_id,
+                                username,
+                                user_first_name,
+                                user_last_name,
+                                last_activity,
+                                is_member
+                            ) VALUES (?, ?, ?, ?, ?, ?)
+                            ON CONFLICT(user_id) DO UPDATE SET
+                                username = excluded.username,
+                                user_first_name = excluded.user_first_name,
+                                user_last_name = excluded.user_last_name,
+                                last_activity = excluded.last_activity,
+                                is_member = excluded.is_member
                             """,
                             (
-                                chat_id,
-                                chat_title,
+                                user_id,
+                                username,
+                                user_first_name,
+                                user_last_name,
                                 iso_date,
+                                1,
                             ),
                         )
-                        await db.commit()
 
+                        await db.commit()
                         sent_message = await message.reply(text=choice(approved))
                     else:
                         sent_message = await message.reply(text=choice(not_approved))

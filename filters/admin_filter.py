@@ -1,6 +1,5 @@
 from aiogram import Router, types
-from aiogram.filters import BaseFilter, Command
-from aiogram.types import Message
+from aiogram.filters import BaseFilter
 
 router = Router()
 

@@ -1,50 +1,47 @@
+from random import choice
+
 import aiosqlite
 from aiogram import Router
 from aiogram.filters import Command
 from aiogram.types import Message
-# from filters.admin_filter import AdminFilter
 
 from config.config import DATABASE
+from lexicon.lexicon import all_done, not_done
 
 router = Router()
 
 
-# @router.message(AdminFilter(), Command(commands="stat_of_day"))
 @router.message(Command(commands="stat_of_day"))
 async def get_stat_of_day(message: Message):
-    chat_id = message.chat.id  # текущий чат
+    # Удалить сообщение
+    await message.delete()
+    response_lines = []
+
     async with aiosqlite.connect(DATABASE) as db:
         query = """
-        SELECT u.user_id, u.username, u.first_name, u.last_name
-        FROM users u
-        JOIN events e ON u.user_id = e.user_id AND e.chat_id = ?
-        WHERE u.is_member = 1
-        AND u.user_id NOT IN (
-            SELECT user_id
-            FROM events
-            WHERE chat_id = ?
-            AND DATE(created_at) = DATE('now', 'localtime')
-        )
+        SELECT username, user_first_name, user_last_name, last_activity FROM users
+        WHERE (last_activity IS NULL OR date(last_activity) < date('now')) AND is_member == 1
         """
-        await message.delete()
 
-        async with aiosqlite.connect(DATABASE) as db:
-            async with db.execute(query, (chat_id, chat_id)) as cursor:
-                rows = await cursor.fetchall()
+        async with db.execute(query) as cursor:
+            debtors = await cursor.fetchall()
 
-        # BUG разобраться с списком пользователей
-        if not rows:
-            await message.bot.send_message(
-                chat_id=message.chat.id,
-                text="Сегодня все активны, нет пользователей без видео заметок.",
-            )
+    if not debtors:
+        await message.bot.send_message(
+            chat_id=message.chat.id, text=choice(all_done)
+        )
+        return
 
-            return
+    # Сформировать список должников
+    response_lines = [choice(not_done)]
+    for username, user_first_name, user_last_name, last_activity in debtors:
+        if username:
+            response_lines.append(f"- @{username} | Последняя активность: {last_activity[:10]}")
+        else:
+            name = username or f"{user_first_name} {user_last_name or ''}".strip()
+            response_lines.append(f"- {name} | Последняя активность: {last_activity[:10]}")
 
-        response_lines = ["Пользователи без видео заметок сегодня:"]
-
-        for user_id, username, first_name, last_name in rows:
-            name = username or f"{first_name or ''} {last_name or ''}".strip()
-            response_lines.append(f"- {name} (id: {user_id})")
-
-        await message.reply("\n".join(response_lines))
+    # Отправить объединенный список всех должников
+    await message.bot.send_message(
+        chat_id=message.chat.id, text="\n".join(response_lines)
+    )

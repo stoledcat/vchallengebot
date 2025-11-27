@@ -1,4 +1,3 @@
-import asyncio
 from datetime import datetime
 from random import choice
 
@@ -37,9 +36,9 @@ async def process_start_command(message: Message):
                     INSERT INTO users (
                         user_id,
                         username,
-                        first_name,
-                        last_name,
-                        joined_at,
+                        user_first_name,
+                        user_last_name,
+                        created_at,
                         left_at,
                         is_member
                     ) VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -60,10 +59,10 @@ async def process_start_command(message: Message):
                 await db.execute(
                     """
                     UPDATE users
-                    SET joined_at = ?, is_member = ?
+                    SET is_member = ?
                     WHERE user_id = ?
                     """,
-                    (iso_date, 1, user.id),
+                    (1, user.id),
                 )
                 await db.commit()
                 sent_message = await message.reply(text=choice(start))
