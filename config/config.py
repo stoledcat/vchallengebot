@@ -2,6 +2,17 @@ from dataclasses import dataclass
 
 from environs import Env
 
+#TODO Выстави нормальные значения задержки
+DELAY_DEFAULT = 10
+DELAY_ERROR_MESSAGE = 3
+DELAY_HELP_MESSAGE = 3
+DELAY_NOTIFY = 3
+DELAY_START_MESSAGE = 3
+DELAY_VIDEO_REPLY = 3
+DELAY_GREETING = 5
+
+DATABASE = "db/vchallenge.db"
+
 
 @dataclass
 class TgBot:

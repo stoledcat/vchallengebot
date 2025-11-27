@@ -1,16 +1,17 @@
 import asyncio
-
 from datetime import datetime
 from random import choice
 
 import aiosqlite
 from aiogram import F, Router
-from aiogram.filters import IS_MEMBER, IS_NOT_MEMBER, ChatMemberUpdatedFilter, Command
+from aiogram.filters import (IS_MEMBER, IS_NOT_MEMBER, ChatMemberUpdatedFilter,
+                             Command)
 from aiogram.types import ChatMemberUpdated, Message
 
-from lexicon.lexicon import LEXICON, approved, not_approved
+from config import config
+from config.config import DATABASE
 from handlers.delete_message import delete_message_delayed as dm
-import handlers.delay as delay
+from lexicon.lexicon import LEXICON, approved, not_approved
 
 # инициализировать роутер уровня модуля
 router = Router()
@@ -22,7 +23,7 @@ async def process_check_out_command(message: Message):
     try:
         date = datetime.now()
         iso_date = date.strftime("%Y-%m-%d %H:%M:%S")
-        async with aiosqlite.connect(LEXICON["database"]) as db:
+        async with aiosqlite.connect(DATABASE) as db:
             user = message.from_user
             user_id = user.id
             async with db.execute(
@@ -47,14 +48,14 @@ async def process_check_out_command(message: Message):
                 sent_message = await message.reply(text=LEXICON["sign_out"])
 
             # удалить сообщение пользователя и ответ бота
-            await dm(sent_message, delay.DELAY_NOTIFY)
+            await dm(sent_message, config.DELAY_NOTIFY)
             await message.delete()
 
     except aiosqlite.IntegrityError as e:
         # Логировать ошибку или информировать пользователя
         print(f"Integrity error: {e}")
         sent_message = await message.reply(text=LEXICON["error"])
-        await dm(sent_message, delay.DELAY_ERROR_MESSAGE)
+        await dm(sent_message, config.DELAY_ERROR_MESSAGE)
 
 
 # Проверка видео заметок (кружочков)
@@ -72,7 +73,7 @@ async def process_sent_voice(message: Message):
 
     # Проверить, является ли пользователь участником челленджа
     try:
-        async with aiosqlite.connect(LEXICON["database"]) as db:
+        async with aiosqlite.connect(DATABASE) as db:
             async with db.execute(
                 "SELECT is_member FROM users WHERE user_id = ?", (user_id,)
             ) as member_cursor:
@@ -123,7 +124,7 @@ async def process_sent_voice(message: Message):
                         sent_message = await message.reply(text=choice(approved))
                     else:
                         sent_message = await message.reply(text=choice(not_approved))
-                await dm(sent_message, delay.DELAY_VIDEO_REPLY)
+                await dm(sent_message, config.DELAY_VIDEO_REPLY)
     except aiosqlite.IntegrityError as e:
         # Логировать ошибку или информировать пользователя
         print(f"Integrity error: {e}")
@@ -144,7 +145,7 @@ async def on_user_joined(event: ChatMemberUpdated):
         "Нажми команду /start, чтобы записаться в челлендж.",
         parse_mode="HTML",
     )
-    await dm(sent_message, delay.DELAY_GREETING)
+    await dm(sent_message, config.DELAY_GREETING)
 
 
 # Ушедшему пользователю установить is_member = 0
@@ -157,7 +158,7 @@ async def on_user_left(event: ChatMemberUpdated):
     try:
         date = datetime.now()
         iso_date = date.strftime("%Y-%m-%d %H:%M:%S")
-        async with aiosqlite.connect(LEXICON["database"]) as db:
+        async with aiosqlite.connect(DATABASE) as db:
             user_id = user.id
             async with db.execute(
                 "SELECT is_member FROM users WHERE user_id = ?", (user_id,)

@@ -2,15 +2,18 @@ import aiosqlite
 from aiogram import Router
 from aiogram.filters import Command
 from aiogram.types import Message
-from lexicon.lexicon import LEXICON
+# from filters.admin_filter import AdminFilter
+
+from config.config import DATABASE
 
 router = Router()
 
 
+# @router.message(AdminFilter(), Command(commands="stat_of_day"))
 @router.message(Command(commands="stat_of_day"))
 async def get_stat_of_day(message: Message):
     chat_id = message.chat.id  # текущий чат
-    async with aiosqlite.connect("./db/vchallenge.db") as db:
+    async with aiosqlite.connect(DATABASE) as db:
         query = """
         SELECT u.user_id, u.username, u.first_name, u.last_name
         FROM users u
@@ -25,11 +28,11 @@ async def get_stat_of_day(message: Message):
         """
         await message.delete()
 
-        async with aiosqlite.connect("./db/vchallenge.db") as db:
+        async with aiosqlite.connect(DATABASE) as db:
             async with db.execute(query, (chat_id, chat_id)) as cursor:
                 rows = await cursor.fetchall()
 
-#BUG разобраться с списком пользователей
+        # BUG разобраться с списком пользователей
         if not rows:
             await message.bot.send_message(
                 chat_id=message.chat.id,

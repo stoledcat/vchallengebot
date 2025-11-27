@@ -1,11 +1,13 @@
-from aiogram.exceptions import TelegramBadRequest
 import asyncio
-import handlers.delay as delay
+
+from aiogram.exceptions import TelegramBadRequest
+
+from config import config
 
 
 # TODO изменить задержку уаления сообщений по умолчанию
 # автоматическое удаление  сообщений
-async def delete_message_delayed(message, delay_seconds: int = delay.DELAY_DEFAULT):
+async def delete_message_delayed(message, delay_seconds: int = config.DELAY_DEFAULT):
     await asyncio.sleep(delay_seconds)
     try:
         await message.delete()

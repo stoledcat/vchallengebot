@@ -1,16 +1,16 @@
+import asyncio
 from datetime import datetime
 from random import choice
-import asyncio
 
 import aiosqlite
 from aiogram import Router
 from aiogram.filters import Command, CommandStart
 from aiogram.types import Message
 
-from lexicon.lexicon import LEXICON, already_started, start
-
+from config import config
+from config.config import DATABASE
 from handlers.delete_message import delete_message_delayed as dm
-import handlers.delay as delay
+from lexicon.lexicon import LEXICON, already_started, start
 
 # инициализировать роутер уровня модуля
 router = Router()
@@ -22,7 +22,7 @@ async def process_start_command(message: Message):
     date = datetime.now()
     iso_date = date.strftime("%Y-%m-%d %H:%M:%S")
     try:
-        async with aiosqlite.connect(LEXICON["database"]) as db:
+        async with aiosqlite.connect(DATABASE) as db:
             user = message.from_user
             user_id = user.id
             # Проверить, есть ли пользователь в базе данных
@@ -71,7 +71,7 @@ async def process_start_command(message: Message):
                 sent_message = await message.reply(text=choice(already_started))
 
 # удалить сообщение пользователя и ответ бота
-            await dm(sent_message, delay.DELAY_START_MESSAGE)
+            await dm(sent_message, config.DELAY_START_MESSAGE)
             await message.delete()
     except aiosqlite.IntegrityError as e:
 # Логировать ошибку или информировать пользователя
@@ -83,5 +83,5 @@ async def process_start_command(message: Message):
 @router.message(Command(commands="help"))
 async def process_help_command(message: Message):
     sent_message = await message.reply(text=LEXICON["/help"])
-    await dm(sent_message, delay.DELAY_HELP_MESSAGE)
+    await dm(sent_message, config.DELAY_HELP_MESSAGE)
     await message.delete()

@@ -4,11 +4,9 @@ import logging
 import aiosqlite
 from aiogram import Bot, Dispatcher
 
+from config.config import DATABASE, Config, load_config
 from db import db_scheme
-from config.config import Config, load_config
-from filters import admin
-from handlers import other, user, admin
-from lexicon.lexicon import LEXICON
+from handlers import admin, other, user
 
 
 async def main() -> None:
@@ -21,7 +19,7 @@ async def main() -> None:
     )
 
     # Создать базу данных
-    async with aiosqlite.connect(LEXICON["database"]) as db:
+    async with aiosqlite.connect(DATABASE) as db:
         await db.execute(db_scheme.chats)
         await db.execute(db_scheme.users)
         await db.execute(db_scheme.events)
