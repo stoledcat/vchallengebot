@@ -1,7 +1,7 @@
 from random import choice
 
 import aiosqlite
-from aiogram import Router
+from aiogram import Bot, Router, types
 from aiogram.filters import Command
 from aiogram.types import Message
 
@@ -13,6 +13,7 @@ router = Router()
 
 @router.message(Command(commands="stat_of_day"))
 async def get_stat_of_day(message: Message):
+    user_id = message.from_user.id
     # Удалить сообщение
     await message.delete()
     response_lines = []
@@ -28,20 +29,20 @@ async def get_stat_of_day(message: Message):
 
     if not debtors:
         await message.bot.send_message(
-            chat_id=message.chat.id, text=choice(all_done)
+            user_id, text=choice(all_done)
         )
         return
 
     # Сформировать список должников
     response_lines = [choice(not_done)]
-    for username, user_first_name, user_last_name, last_activity in debtors:
+    for username, user_first_name, user_last_name, _ in debtors:
         if username:
-            response_lines.append(f"- @{username} | Последняя активность: {last_activity[:10]}")
+            response_lines.append(f"- @{username}")
         else:
             name = username or f"{user_first_name} {user_last_name or ''}".strip()
-            response_lines.append(f"- {name} | Последняя активность: {last_activity[:10]}")
+            response_lines.append(f"- {name}")
 
     # Отправить объединенный список всех должников
     await message.bot.send_message(
-        chat_id=message.chat.id, text="\n".join(response_lines)
+        user_id, text="\n".join(response_lines)
     )
