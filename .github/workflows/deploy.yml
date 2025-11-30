@@ -17,7 +17,7 @@ jobs:
                   key: $ {{ secrets.VPS_SSH_KEY }}
                   script: |
                     cd /home/app
-                    gir pull origin main
+                    git pull origin main
                     source .venv/bin/activate
                     pip install --no-cache-dir --upgrade pip
                     pip install --no-cache-dir -r requirements.txt
