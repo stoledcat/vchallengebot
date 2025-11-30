@@ -1,0 +1,24 @@
+name : Deploy to VPS
+
+on: [push, pull_request]
+
+jobs:
+    test:
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Deploy to VPS
+              uses: appleboy/ssh-action@v1.0.3
+              with:
+                  host: $ {{ secrets.VPS_HOST }}
+                  username: $ {{ secrets.VPS_USER }}
+                  key: $ {{ secrets.VPS_SSH_KEY }}
+                  script: |
+                    cd /home/app
+                    gir pull origin main
+                    source .venv/bin/activate
+                    pip install --no-cache-dir --upgrade pip
+                    pip install --no-cache-dir -r requirements.txt
+                    sudo systemctl restart vplankebot
