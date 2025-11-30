@@ -27,5 +27,4 @@ jobs:
               -e BOT_TOKEN=${{ secrets.BOT_TOKEN }} \
               -e LOG_LEVEL=${{ secrets.LOG_LEVEL }} \
               -e LOG_FORMAT="${{ secrets.LOG_FORMAT }}" \
-              -v /var/vchallenge-db:/app/db \
               vchallenge
