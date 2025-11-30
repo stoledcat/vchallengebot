@@ -23,6 +23,8 @@ jobs:
             docker build -t vchallenge .
             docker stop vchallenge || true
             docker rm vchallenge || true
-            docker run -d --name vchallenge --restart=always -p 8000:8000  \
-            -e BOT_TOKEN=${{ secrets.BOT_TOKEN }} \
-            vchallenge
+            docker run -d --name vchallenge --restart=always -p 8000:8000 \
+              -e BOT_TOKEN=${{ secrets.BOT_TOKEN }} \
+              -e LOG_LEVEL=${{ secrets.LOG_LEVEL }} \
+              -e LOG_FORMAT="${{ secrets.LOG_FORMAT }}" \
+              vchallenge
