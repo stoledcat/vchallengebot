@@ -14,18 +14,13 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
+            mkdir -p ~/vchallenge
+            cd ~/vchallenge
 
-            cd ~/vchallenge || mkdir -p ~/vchallenge && cd ~/vchallenge
+            git clone git@github.com:stoledcat/vchallengebot.git . || git pull origin main
 
-
-            if [ ! -d ".git" ]; then
-              rm -rf ./*
-              git clone https://github.com/stoledcat/vchallengebot.git .
-            else
-              git pull origin main
-            fi
 
             docker build -t vchallenge .
             docker stop vchallenge || true
             docker rm vchallenge || true
-            docker run -d --name vchallenge --restart=always -p 8000:8000 vchallenge [file:13]
+            docker run -d --name vchallenge --restart=always -p 8000:8000 vchallenge
