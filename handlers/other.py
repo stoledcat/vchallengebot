@@ -4,8 +4,7 @@ from random import choice
 
 import aiosqlite
 from aiogram import F, Router
-from aiogram.filters import (IS_MEMBER, IS_NOT_MEMBER, ChatMemberUpdatedFilter,
-                             Command)
+from aiogram.filters import IS_MEMBER, IS_NOT_MEMBER, ChatMemberUpdatedFilter, Command
 from aiogram.types import ChatMemberUpdated, Message
 
 from config import config
@@ -21,27 +20,26 @@ router = Router()
 @router.message(Command(commands="sign_out"))
 async def process_check_out_command(message: Message):
     try:
-        date = datetime.now()
-        iso_date = date.strftime("%Y-%m-%d %H:%M:%S")
         async with aiosqlite.connect(DATABASE) as db:
             user = message.from_user
             user_id = user.id
             async with db.execute(
-                "SELECT is_member FROM users WHERE user_id = ?", (user_id,)
+                "SELECT user_id, chat_id FROM is_member WHERE user_id = ? AND chat_id = ? ",
+                (
+                    message.from_user.id,
+                    message.chat.id,
+                ),
             ) as cursor:
                 row = await cursor.fetchone()
             if not row:
                 sent_message = await message.reply(text=LEXICON["not_in_base"])
-            elif row[0] == 0:
-                sent_message = await message.reply(text=LEXICON["already_signed_out"])
             else:
                 await db.execute(
-                    """
-                    UPDATE users
-                    SET left_at = ?, is_member = ?
-                    WHERE user_id = ?
-                    """,
-                    (iso_date, 0, user.id),
+                    """DELETE FROM is_member WHERE user_id = ? AND chat_id = ?""",
+                    (
+                        int(message.from_user.id),
+                        (int(message.chat.id)),
+                    ),
                 )
 
                 await db.commit()
@@ -75,7 +73,11 @@ async def process_sent_voice(message: Message):
     try:
         async with aiosqlite.connect(DATABASE) as db:
             async with db.execute(
-                "SELECT is_member FROM users WHERE user_id = ?", (user_id,)
+                "SELECT user_id, chat_id FROM is_member WHERE user_id = ? AND chat_id = ?",
+                (
+                    user_id,
+                    chat_id,
+                ),
             ) as member_cursor:
                 is_member = await member_cursor.fetchone()
                 if not is_member or is_member[0] == 0:
@@ -83,56 +85,19 @@ async def process_sent_voice(message: Message):
 
                 else:
                     # Проверить длительность видео заметки
-                    # TODO не забыть вернуть длительность кружочка 59 секунд
                     if message.video_note.duration > VIDEO_NOTE_DURATION:
                         await db.execute(
                             """
                             INSERT INTO events (
-                                chat_id,
                                 chat_title,
                                 user_id,
                                 username,
-                                user_first_name,
-                                user_last_name,
+                                first_name,
+                                last_name,
                                 created_at
-                            ) VALUES (?, ?, ?, ?, ?, ?, ?)
-                            """,
-                            (
-                                chat_id,
-                                chat_title,
-                                user_id,
-                                username,
-                                user_first_name,
-                                user_last_name,
-                                iso_date,
-                            ),
-                        )
-
-                        await db.execute(
-                            """
-                            INSERT INTO users (
-                                user_id,
-                                username,
-                                user_first_name,
-                                user_last_name,
-                                last_activity,
-                                is_member
                             ) VALUES (?, ?, ?, ?, ?, ?)
-                            ON CONFLICT(user_id) DO UPDATE SET
-                                username = excluded.username,
-                                user_first_name = excluded.user_first_name,
-                                user_last_name = excluded.user_last_name,
-                                last_activity = excluded.last_activity,
-                                is_member = excluded.is_member
                             """,
-                            (
-                                user_id,
-                                username,
-                                user_first_name,
-                                user_last_name,
-                                iso_date,
-                                1,
-                            ),
+                            (chat_title, user_id, username, user_first_name, user_last_name, iso_date),
                         )
 
                         await db.commit()
@@ -163,7 +128,7 @@ async def on_user_joined(event: ChatMemberUpdated):
     await dm(sent_message, config.DELAY_GREETING)
 
 
-# Ушедшему пользователю установить is_member = 0
+# Ушедшеего пользователя удалить из участников
 @router.chat_member(ChatMemberUpdatedFilter(IS_MEMBER >> IS_NOT_MEMBER))
 async def on_user_left(event: ChatMemberUpdated):
     user = event.old_chat_member.user
@@ -176,16 +141,19 @@ async def on_user_left(event: ChatMemberUpdated):
         async with aiosqlite.connect(DATABASE) as db:
             user_id = user.id
             async with db.execute(
-                "SELECT is_member FROM users WHERE user_id = ?", (user_id,)
+                "SELECT user_id, chat_id FROM is_member WHERE user_id =? AND chat_id = ?",
+                (
+                    event.from_user.id,
+                    event.chat.id,
+                ),
             ) as cursor:
                 row = await cursor.fetchone()
                 await db.execute(
-                    """
-                    UPDATE users
-                    SET left_at = ?, is_member = ?
-                    WHERE user_id = ?
-                    """,
-                    (iso_date, 0, user.id),
+                    """DELETE FROM is_member WHERE user_id = ? AND chat_id = ?""",
+                    (
+                        int(event.from_user.id),
+                        int(event.chat.id),
+                    ),
                 )
 
                 await db.commit()
