@@ -1,25 +1,37 @@
 events = """
 CREATE TABLE IF NOT EXISTS events (
-    id INTEGER PRIMARY KEY,
-    chat_id INTEGER NOT NULL,
+    id BIGSERIAL PRIMARY KEY,
     chat_title TEXT NOT NULL,
-    user_id INTEGER NOT NULL,
+    user_id BIGINT NOT NULL REFERENCES users(user_id),
     username TEXT,
-    user_first_name TEXT,
-    user_last_name TEXT,
-    created_at TEXT NOT NULL
+    first_name TEXT,
+    last_name TEXT,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 """
 
 users = """
 CREATE TABLE IF NOT EXISTS users (
-    user_id INTEGER PRIMARY KEY,
+    user_id BIGINT PRIMARY KEY NOT NULL,
     username TEXT,
-    user_first_name TEXT,
-    user_last_name TEXT,
-    created_at TEXT,
-    left_at TEXT,
-    last_activity TEXT,
-    is_member INTEGER
+    first_name TEXT,
+    last_name TEXT,
+    joined_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+"""
+
+chats = """
+CREATE TABLE IF NOT EXISTS chats (
+    chat_id BIGINT PRIMARY KEY NOT NULL,
+    chat_title TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+"""
+
+is_member = """
+CREATE TABLE IF NOT EXISTS is_member (
+    user_id BIGINT NOT NULL REFERENCES users(user_id),
+    chat_id BIGINT NOT NULL REFERENCES chats(chat_id),
+    PRIMARY KEY (user_id, chat_id)
 );
 """
