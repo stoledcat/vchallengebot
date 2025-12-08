@@ -23,57 +23,59 @@ async def process_start_command(message: Message):
     try:
         async with aiosqlite.connect(DATABASE) as db:
             user = message.from_user
-            user_id = user.id
-            # Проверить, есть ли пользователь в базе данных
+            # Проверить, является ли пользователь участником челленджа в чате, откуда был отправлен запрос
             async with db.execute(
-                "SELECT is_member FROM users WHERE user_id = ?", (user_id,)
+                "SELECT user_id, chat_id FROM is_member WHERE user_id = ? AND chat_id = ? ", (message.from_user.id, message.chat.id,)
             ) as cursor:
                 row = await cursor.fetchone()
-
             if not row:
                 await db.execute(
                     """
                     INSERT INTO users (
                         user_id,
                         username,
-                        user_first_name,
-                        user_last_name,
-                        created_at,
-                        left_at,
-                        is_member
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                        first_name,
+                        last_name,
+                        joined_at
+                    ) VALUES (?, ?, ?, ?, ?)
                     """,
-                    (
-                        user.id,
-                        user.username,
-                        user.first_name,
-                        user.last_name,
-                        iso_date,
-                        None,
-                        1,
-                    ),
+                    (user.id, user.username, user.first_name, user.last_name, iso_date),
                 )
-                await db.commit()
-                sent_message = await message.reply(text=choice(start))
-            elif row[0] == 0:
+                # сопоставить user_id и chat_id в таблице is_member - фиксирование принятие участия в определенном чате
                 await db.execute(
                     """
-                    UPDATE users
-                    SET is_member = ?
-                    WHERE user_id = ?
+                    INSERT INTO is_member (
+                    user_id,
+                    chat_id,
+                    username,
+                    chat_title
+                    ) VALUES (?, ?, ?, ?)
                     """,
-                    (1, user.id),
+                    (user.id, message.chat.id, (user.username or user.first_name), message.chat.title),
                 )
+
+                await db.execute(
+                    """
+                    INSERT INTO chats (
+                    chat_id,
+                    chat_title,
+                    created_at
+                    ) VALUES (?, ?, ?)
+                    """,
+                    (message.chat.id, message.chat.title, iso_date),
+                )
+
                 await db.commit()
                 sent_message = await message.reply(text=choice(start))
             else:
+                await db.commit()
                 sent_message = await message.reply(text=choice(already_started))
 
-# удалить сообщение пользователя и ответ бота
+            # удалить сообщение пользователя и ответ бота
             await dm(sent_message, config.DELAY_START_MESSAGE)
             await message.delete()
     except aiosqlite.IntegrityError as e:
-# Логировать ошибку или информировать пользователя
+        # Логировать ошибку или информировать пользователя
         print(f"Integrity error: {e}")
         await message.reply(text=LEXICON["error"])
 

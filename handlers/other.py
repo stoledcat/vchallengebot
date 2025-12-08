@@ -7,6 +7,9 @@ from aiogram import F, Router
 from aiogram.filters import IS_MEMBER, IS_NOT_MEMBER, ChatMemberUpdatedFilter, Command
 from aiogram.types import ChatMemberUpdated, Message
 
+from aiogram.fsm.state import StatesGroup, State
+from aiogram.fsm.context import FSMContext
+
 from config import config
 from config.config import DATABASE, VIDEO_NOTE_DURATION
 from handlers.delete_message import delete_message_delayed as dm
@@ -14,6 +17,11 @@ from lexicon.lexicon import LEXICON, approved, not_approved
 
 # инициализировать роутер уровня модуля
 router = Router()
+
+
+class Reg(StatesGroup):
+    # Состояние для ожидания ответа от пользователя
+    waiting_for_response = State()
 
 
 # Выписаться из челленджа /sign_out
@@ -69,23 +77,20 @@ async def process_sent_voice(message: Message):
     date = datetime.now()
     iso_date = date.strftime("%Y-%m-%d %H:%M:%S")
 
-    # Проверить, является ли пользователь участником челленджа
-    try:
-        async with aiosqlite.connect(DATABASE) as db:
-            async with db.execute(
-                "SELECT user_id, chat_id FROM is_member WHERE user_id = ? AND chat_id = ?",
-                (
-                    user_id,
-                    chat_id,
-                ),
-            ) as member_cursor:
-                is_member = await member_cursor.fetchone()
-                if not is_member or is_member[0] == 0:
-                    sent_message = await message.reply(text=LEXICON["not_a_member"])
-
-                else:
-                    # Проверить длительность видео заметки
-                    if message.video_note.duration > VIDEO_NOTE_DURATION:
+    # Проверить длительность видео заметки
+    if message.video_note.duration > VIDEO_NOTE_DURATION:
+        try: # Проверить, является ли пользователь участником челленджа
+            async with aiosqlite.connect(DATABASE) as db:
+                async with db.execute(
+                    "SELECT user_id, chat_id FROM is_member WHERE user_id = ? AND chat_id = ?",
+                    (user_id, chat_id,),
+                ) as member_cursor:
+                    is_member = await member_cursor.fetchone()
+                    if not is_member or is_member[0] == 0:
+                        # sent_message = await message.reply(text=LEXICON["not_a_member"])
+                        sent_message = await message.reply(text="Всё хорошо, но ты не участник челленджа. Чтобы исправить это и засчитать кружок, отправь команду /start")
+                    else:
+                        # сделать запись в базу данных
                         await db.execute(
                             """
                             INSERT INTO events (
@@ -102,13 +107,13 @@ async def process_sent_voice(message: Message):
 
                         await db.commit()
                         sent_message = await message.reply(text=choice(approved))
-                    else:
-                        sent_message = await message.reply(text=choice(not_approved))
-                await dm(sent_message, config.DELAY_VIDEO_REPLY)
-    except aiosqlite.IntegrityError as e:
+                    # else:
+                    #     sent_message = await message.reply(text=choice(not_approved))
+                    await dm(sent_message, config.DELAY_VIDEO_REPLY)
+        except aiosqlite.IntegrityError as e:
         # Логировать ошибку или информировать пользователя
-        print(f"Integrity error: {e}")
-        await message.reply(text=LEXICON["error"])
+            print(f"Integrity error: {e}")
+            await message.reply(text=LEXICON["error"])
 
 
 # Приветствие новых пользователей

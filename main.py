@@ -20,8 +20,11 @@ async def main() -> None:
 
     # Создать базу данных
     async with aiosqlite.connect(DATABASE) as db:
-        await db.execute(db_scheme.events)
         await db.execute(db_scheme.users)
+        await db.execute(db_scheme.chats)
+        await db.execute(db_scheme.is_member)
+        await db.execute(db_scheme.events)
+        await db.execute(db_scheme.pending_video_notes)
         await db.commit()
 
     # инициализировать бота и дспетчера

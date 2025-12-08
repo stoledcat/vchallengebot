@@ -3,14 +3,16 @@ from dataclasses import dataclass
 from environs import Env
 
 #TODO Выстави нормальные значения задержки
-DELAY_DEFAULT = 60
-DELAY_ERROR_MESSAGE = 60
-DELAY_HELP_MESSAGE = 120
-DELAY_NOTIFY = 120
-DELAY_START_MESSAGE = 120
-DELAY_VIDEO_REPLY = 120
-DELAY_GREETING = 120
-VIDEO_NOTE_DURATION = 59
+# Настройки задержек удаления сообщений
+DELAY_DEFAULT = 20  # удалить ответ на команду
+DELAY_ERROR_MESSAGE = 20  # ответ на ошибку
+DELAY_HELP_MESSAGE = 20  # ответ на /help
+DELAY_NOTIFY = 20  # уведомление
+DELAY_START_MESSAGE = 20  # ответ на /start
+DELAY_VIDEO_REPLY = 20  # ответ на видео
+DELAY_GREETING = 20  # приветствие
+
+VIDEO_NOTE_DURATION = 3  # длительность видео в секундах
 
 DATABASE = "db/vchallenge.db"
 

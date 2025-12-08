@@ -40,3 +40,17 @@ CREATE TABLE IF NOT EXISTS is_member (
     PRIMARY KEY (user_id, chat_id)
 );
 """
+
+pending_video_notes = """
+CREATE TABLE IF NOT EXISTS pending_video_notes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    chat_id INTEGER,
+    video_file_id TEXT,
+    duration INTEGER,
+    message_id INTEGER,
+    created_at TEXT,
+    processed INTEGER DEFAULT 0,
+    UNIQUE(user_id, chat_id, message_id)
+);
+"""
