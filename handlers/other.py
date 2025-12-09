@@ -8,7 +8,6 @@ from aiogram.filters import IS_MEMBER, IS_NOT_MEMBER, ChatMemberUpdatedFilter, C
 from aiogram.types import ChatMemberUpdated, Message
 
 from aiogram.fsm.state import StatesGroup, State
-from aiogram.fsm.context import FSMContext
 
 from config import config
 from config.config import DATABASE, VIDEO_NOTE_DURATION
@@ -66,7 +65,7 @@ async def process_check_out_command(message: Message):
 
 # Проверка видео заметок (кружочков)
 @router.message(F.video_note)
-async def process_sent_voice(message: Message):
+async def process_sent_video(message: Message):
     # user_id = user.id
     chat_id = message.chat.id
     chat_title = message.chat.title
@@ -78,28 +77,48 @@ async def process_sent_voice(message: Message):
     iso_date = date.strftime("%Y-%m-%d %H:%M:%S")
 
     # Проверить длительность видео заметки
-    if message.video_note.duration > VIDEO_NOTE_DURATION:
-        try: # Проверить, является ли пользователь участником челленджа
+    if message.video_note.duration >= VIDEO_NOTE_DURATION:
+        try:
             async with aiosqlite.connect(DATABASE) as db:
+                # Проверить, является ли пользователь участником челленджа
                 async with db.execute(
                     "SELECT user_id, chat_id FROM is_member WHERE user_id = ? AND chat_id = ?",
-                    (user_id, chat_id,),
+                    (
+                        user_id,
+                        chat_id,
+                    ),
                 ) as member_cursor:
                     is_member = await member_cursor.fetchone()
-                    if not is_member or is_member[0] == 0:
+                    if not is_member:
                         # sent_message = await message.reply(text=LEXICON["not_a_member"])
-                        sent_message = await message.reply(text="Всё хорошо, но ты не участник челленджа. Чтобы исправить это и засчитать кружок, отправь команду /start")
+                        sent_message = await message.reply(
+                            text="Всё хорошо, но ты не участник челленджа. Чтобы исправить это и засчитать кружок, отправь команду /start"
+                        )
+                        # записать промежуточный результат во временную таблицу
+                        await db.execute(
+                            """
+                            INSERT INTO pending_video_notes (
+                                user_id, chat_id, video_file_id, duration, message_id, created_at, processed
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                            """,
+                            # TODO доделать запись во временную таблицу
+                            (
+                                user_id,
+                                chat_id,
+                                message.video_note.file_id,
+                                message.video_note.duration,
+                                message.message_id,
+                                iso_date,
+                                1,
+                            ),
+                        )
+                        await db.commit()
                     else:
-                        # сделать запись в базу данных
+                        # участник - сделать запись в базу данных
                         await db.execute(
                             """
                             INSERT INTO events (
-                                chat_title,
-                                user_id,
-                                username,
-                                first_name,
-                                last_name,
-                                created_at
+                                chat_title, user_id, username, first_name, last_name, created_at
                             ) VALUES (?, ?, ?, ?, ?, ?)
                             """,
                             (chat_title, user_id, username, user_first_name, user_last_name, iso_date),
@@ -110,8 +129,10 @@ async def process_sent_voice(message: Message):
                     # else:
                     #     sent_message = await message.reply(text=choice(not_approved))
                     await dm(sent_message, config.DELAY_VIDEO_REPLY)
+
+
         except aiosqlite.IntegrityError as e:
-        # Логировать ошибку или информировать пользователя
+            # Логировать ошибку или информировать пользователя
             print(f"Integrity error: {e}")
             await message.reply(text=LEXICON["error"])
 
@@ -164,11 +185,12 @@ async def on_user_left(event: ChatMemberUpdated):
                 await db.commit()
             await asyncio.sleep(1)
             chat_id = event.chat.id
-            await event.bot.send_message(
+            sent_message = await event.bot.send_message(
                 chat_id=chat_id,
                 text=f"Пользователь, <a href='tg://user?id={user_id}'>{user_first_name}</a> больше не принимает участие в челлендже.",
                 parse_mode="HTML",
             )
+            await dm(sent_message, config.DELAY_GREETING)
 
     except aiosqlite.IntegrityError:
         chat_id = event.chat.id
